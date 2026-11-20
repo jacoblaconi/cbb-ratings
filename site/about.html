@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Method · CBB Ratings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="wrap prose">
+<h1>Method</h1>
+<p class="sub">Ratings follow KenPom's published method. Where KenPom doesn't publish a detail, we use Torvik's documented choice and tune it on past seasons.</p>
+
+<h2>Ratings</h2>
+<ol>
+  <li><b>Possessions</b> per game: <code>FGA − ORB + TO + 0.475 × FTA</code>, averaged over both teams. Only games between two D-I teams count.</li>
+  <li><b>Raw efficiency</b>: points scored (OE) and allowed (DE) per 100 possessions. <b>Tempo</b>: possessions per 40 minutes.</li>
+  <li><b>Adjusted efficiency</b>: an additive model, as KenPom uses now. Each game's offensive efficiency is modelled as national average + the team's offense term + the opponent's defense term, with home court removed. All teams are solved together by weighted least squares.</li>
+  <li><b>Home court</b>: a flat 3.75 points per game.</li>
+  <li><b>AdjT</b>: tempo adjusted for opponents the same way, in possessions per 40 minutes against an average-tempo team.</li>
+  <li><b>AdjEM</b> = AdjO − AdjD, the margin per 100 possessions against an average D-I team.</li>
+  <li><b>Recency</b>: games count fully for 40 days, then 1% less per day, down to 60% at 80 days.</li>
+  <li><b>Blowouts</b>: efficiency margins beyond 40 points per 100 possessions count at half their size.</li>
+  <li><b>Preseason prior</b>: last season's final ratings, 20% regressed to average, worth 6 games and gone after a team plays 13.</li>
+  <li><b>Predictions</b>: projected tempo and efficiencies give a projected score. Win chance = Φ(margin / 11.9).</li>
+</ol>
+<p>Back-test on the 2025-26 season (5,752 D-I games, each predicted with only earlier games): average error 9.4 points on margin, winner right 71.6% of the time.</p>
+
+<h2>Other columns</h2>
+<ul>
+  <li><b>Luck</b>: actual win % minus the win % expected from each game's efficiencies (Pythagorean exponent 10.25).</li>
+  <li><b>SOS</b>: average current AdjEM of D-I opponents. NCSOS is the same for non-conference games.</li>
+  <li><b>Four Factors</b>: eFG%, turnover %, offensive rebound %, FTA/FGA, for offense and defense.</li>
+</ul>
+
+<h2 id="netplus">NET+</h2>
+<p>The NCAA NET grades every game against the opponent's rank <i>today</i>, so a game's quadrant can change all season. NET+ grades each game once, on the day it is played, and never regrades it.</p>
+<ul>
+  <li>Every morning the model saves a ranking snapshot using only earlier games.</li>
+  <li>Each game takes its opponent rank, quadrant and wins-above-bubble value from the snapshot of its own date.</li>
+  <li>Quadrants use the NET cutoffs. Q1 is ranks 1-30 at home, 1-50 neutral and 1-75 away. Q2 is 31-75, 51-100 and 76-135. Q3 is 76-160, 101-200 and 136-240. Everything else is Q4.</li>
+  <li><b>WAB</b> (wins above bubble) sums each result minus the chance that the #45 team would have won that same game, judged by the snapshot of the game's date.</li>
+  <li><b>NET+ score</b> mirrors NET's two parts: half results (frozen WAB) and half efficiency (current AdjEM), each scaled to z-scores.</li>
+  <li><b>Live rank</b> is the same formula with every game regraded by today's rankings, so you can see what freezing changes.</li>
+</ul>
+<p>Snapshots use our AdjEM rank. When official NCAA NET rankings for a date are added to the data, NET+ freezes those instead from that date on.</p>
+
+<h2>Data</h2>
+<p>Box scores and schedules come from ESPN, through the free <a href="https://github.com/sportsdataverse/hoopR-mbb-data">sportsdataverse/hoopR</a> datasets. The site rebuilds every morning.</p>
+</main>
+<script src="assets/app.js"></script>
+<script>CBB.start("about");</script>
+</body>
+</html>

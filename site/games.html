@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Games · CBB Ratings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="wrap">
+<h1>Game predictions</h1>
+<p class="sub">Projected scores and win chances for the next seven days, from current AdjO, AdjD, AdjT and a 3.75-point home court.</p>
+<div class="controls"><div id="view"></div></div>
+<div id="games"><p class="loading">Loading games…</p></div>
+</main>
+<script src="assets/app.js"></script>
+<script>CBB.start("games");</script>
+</body>
+</html>
