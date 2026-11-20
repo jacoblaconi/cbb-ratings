@@ -210,6 +210,7 @@
         ${card("Luck", sgn(t.luck, 3), ord(t.luck_rank))}
         ${card("SOS", sgn(t.sos_em, 2), ord(t.sos_em_rank))}
       </div>
+      ${t.pre_em != null ? `<p class="note">Preseason projection: AdjEM ${sgn(t.pre_em, 1)} (#${Math.round(t.pre_rank)}), with ${Math.round(t.pre_ret * 100)}% of last season's production returning. Incoming transfers produced the equivalent of ${Math.round(t.pre_xfer * 100)}% of a team's output at their old schools. The projection now counts as ${f1(t.prior_weight)} games of data and fades to zero by game ${t.prior_fade}.</p>` : ""}
       <div id="hist"></div>
       <h2>Results</h2>
       <p class="note">Opponent rank and quadrant are shown <b>at game time</b> (frozen, used by NET+) and <b>today</b>. Highlighted rows changed quadrant since the game.</p>

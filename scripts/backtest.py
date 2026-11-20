@@ -14,10 +14,12 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cbb import config  # noqa: E402
 from cbb.data import load_games  # noqa: E402
 from cbb.model import predict, solve  # noqa: E402
+from cbb.prior import build_prior  # noqa: E402
 
 
 def final_ratings(season: int, prior=None):
@@ -47,6 +49,8 @@ def run(season: int, prior_table, start_after: str | None = None) -> dict:
         "winner_pct": float(((d["pred"] > 0) == (d["act"] > 0)).mean()),
         "brier": float(((d["p"] - won) ** 2).mean()),
         "resid_sd": float(err.std()),
+        # Before mid-December, when the prior matters most.
+        "mae_early": float(err[d["date"].to_numpy() < f"{season - 1}-12-15"].abs().mean()),
     }
 
 
@@ -54,21 +58,36 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("season", type=int)
     ap.add_argument("--grid", action="store_true")
+    ap.add_argument("--prior", choices=["roster", "last"], default="roster")
+    ap.add_argument("--fit-seasons", default=None,
+                    help="refit prior coefficients on these seasons first, e.g. 2025 (avoids testing on fit data)")
     args = ap.parse_args()
 
-    base_prior = final_ratings(args.season - 1)
+    coef = None
+    if args.fit_seasons:
+        from fit_prior import dataset  # noqa: E402
+        from cbb.prior import FEATURES
+        d = pd.concat([dataset(int(s)) for s in args.fit_seasons.split(",")])
+        X = np.column_stack([d[k] for k in FEATURES] + [np.ones(len(d))])
+        beta, *_ = np.linalg.lstsq(X, d["y"].to_numpy(), rcond=None)
+        coef = dict(zip(FEATURES + ["intercept"], beta))
+
+    def make_prior():
+        if args.prior == "roster":
+            return build_prior(args.season, coef=coef)
+        return final_ratings(args.season - 1).prior(config.PRIOR_REGRESS)
+
     if not args.grid:
-        print(run(args.season, base_prior.prior()))
+        print(run(args.season, make_prior()))
         return
     grid = {
-        "PRIOR_GAMES": [3.0, 6.0, 10.0],
-        "PRIOR_REGRESS": [0.2, 0.35, 0.5],
-        "MARGIN_CAP": [20.0, 25.0, 40.0],
+        "PRIOR_GAMES": [4.0, 6.0, 9.0, 12.0],
+        "PRIOR_FADE_GAMES": [10, 13, 18],
     }
     for combo in itertools.product(*grid.values()):
         for k, v in zip(grid, combo):
             setattr(config, k, v)
-        res = run(args.season, base_prior.prior(config.PRIOR_REGRESS))
+        res = run(args.season, make_prior())
         print(dict(zip(grid, combo)), {k: round(v, 4) for k, v in res.items()}, flush=True)
 
 

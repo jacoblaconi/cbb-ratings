@@ -100,7 +100,7 @@ def _write(path: Path, obj) -> None:
 
 
 def export(out_dir: Path, season: int, as_of: str, games, upcoming, teams, current: Ratings,
-           game_rows, netplus, history) -> None:
+           game_rows, netplus, history, prior: pd.DataFrame | None = None) -> None:
     stats = team_stats(games, teams, current)
     info = teams.set_index("team_id")
     r = current.table
@@ -108,6 +108,13 @@ def export(out_dir: Path, season: int, as_of: str, games, upcoming, teams, curre
     rank_cols = {"adj_o": False, "adj_d": True, "adj_t": False, "sos_em": False, "luck": False}
     table = info[["name", "short", "abbr", "conf", "color", "logo"]].join(r).join(stats).join(
         netplus[["netplus_rank", "netstyle_rank", "netplus_score", "wab_frozen", "wab_live"]])
+    if prior is not None:
+        pr = prior[["proj_em", "ret", "xfer_share"]].rename(columns={"proj_em": "pre_em", "ret": "pre_ret", "xfer_share": "pre_xfer"})
+        table = table.join(pr)
+        table["pre_rank"] = table["pre_em"].rank(ascending=False, method="min")
+        gp = table["games"].fillna(0)
+        table["prior_fade"] = config.PRIOR_FADE_GAMES
+        table["prior_weight"] = config.PRIOR_GAMES * (1 - gp / config.PRIOR_FADE_GAMES).clip(lower=0)
     for c, asc in rank_cols.items():
         table[f"{c}_rank"] = table[c].rank(ascending=asc, method="min")
     table = table.sort_values("rank").reset_index()

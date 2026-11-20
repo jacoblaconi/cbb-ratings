@@ -36,6 +36,12 @@ python scripts/backtest.py 2026 --grid  # re-tune the open constants
 | `cbb/config.py` | All model constants |
 | `site/` | Static website (no build step) |
 
+## Preseason prior
+
+`cbb/prior.py` projects each team from last season's rating, the share of last season's production that returns (hoopR rosters + player box scores), and transfers' production at their old D-I schools. Refit with `python scripts/fit_prior.py 2025 2026`. The projection counts as 6 games of data and fades out by a team's 18th game.
+
+High-school recruiting is optional and light: add `data/recruiting/YYYY.csv` with `team_id,points` (any team class score, e.g. a recruiting-site class rating). It's worth `RECRUIT_WEIGHT` (1.0) AdjEM per standard deviation.
+
 ## Official NET (optional)
 
 NET+ freezes our own AdjEM rank by default. To freeze the official NCAA NET instead, add `data/official_net/YYYY-MM-DD.csv` files with `team_id,rank` (ESPN team ids). From each file's date on, NET+ uses it.

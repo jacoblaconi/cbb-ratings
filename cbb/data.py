@@ -15,6 +15,8 @@ RELEASES = "https://github.com/sportsdataverse/sportsdataverse-data/releases/dow
 FILES = {
     "team_box": "espn_mens_college_basketball_team_boxscores/team_box_{season}.parquet",
     "schedule": "espn_mens_college_basketball_schedules/mbb_schedule_{season}.parquet",
+    "player_box": "espn_mens_college_basketball_player_boxscores/player_box_{season}.parquet",
+    "rosters": "espn_mens_college_basketball_rosters/rosters_{season}.parquet",
 }
 
 RAW_DIR = Path(os.environ.get("CBB_RAW_DIR", Path(__file__).resolve().parent.parent / "data" / "raw"))
