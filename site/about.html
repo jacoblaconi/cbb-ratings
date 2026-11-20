@@ -23,10 +23,10 @@
   <li><b>AdjEM</b> = AdjO − AdjD, the margin per 100 possessions against an average D-I team.</li>
   <li><b>Recency</b>: games count fully for 40 days, then 1% less per day, down to 60% at 80 days.</li>
   <li><b>Blowouts</b>: efficiency margins beyond 40 points per 100 possessions count at half their size.</li>
-  <li><b>Preseason prior</b>: last season's final ratings, 20% regressed to average, worth 6 games and gone after a team plays 13.</li>
+  <li><b>Preseason prior</b>: a roster-based projection worth 6 games of data, fading to zero by a team's 18th game. It starts from last season's rating, scaled by the share of last season's production that returns. Incoming transfers add value based on how much they produced at their old D-I school and how good that team was. Freshmen and other newcomers count at an average newcomer level. Coefficients are fit on the 2024-25 and 2025-26 seasons. An optional high-school recruiting input adds at most a point or two.</li>
   <li><b>Predictions</b>: projected tempo and efficiencies give a projected score. Win chance = Φ(margin / 11.9).</li>
 </ol>
-<p>Back-test on the 2025-26 season (5,752 D-I games, each predicted with only earlier games): average error 9.4 points on margin, winner right 71.6% of the time.</p>
+<p>Back-test on the 2025-26 season (5,752 D-I games, each predicted with only earlier games, prior fit on 2024-25 only): average error 9.2 points on margin, 9.8 before mid-December. The winner was right 71.8% of the time.</p>
 
 <h2>Other columns</h2>
 <ul>

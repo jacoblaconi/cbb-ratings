@@ -21,6 +21,7 @@ from cbb import netplus  # noqa: E402
 from cbb.data import load_games  # noqa: E402
 from cbb.export import export  # noqa: E402
 from cbb.model import solve  # noqa: E402
+from cbb.prior import build_prior  # noqa: E402
 
 
 def current_season(today: datetime) -> int:
@@ -37,10 +38,9 @@ def main() -> None:
     args = ap.parse_args()
     t0 = time.time()
 
-    # Preseason prior: last season's final ratings.
-    pg, _, pteams = load_games(args.season - 1, refresh=False)
-    p_end = (pd.Timestamp(pg["game_date"].max()) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-    prior = solve(pg, pteams["team_id"], p_end).prior()
+    # Preseason prior: last season's ratings adjusted for returning production,
+    # transfers in and (optional) recruiting. Fades out as games are played.
+    prior = build_prior(args.season, refresh=args.refresh)
 
     games, upcoming, teams = load_games(args.season, refresh=args.refresh)
     as_of = args.as_of or today.strftime("%Y-%m-%d")
@@ -49,7 +49,7 @@ def main() -> None:
 
     current = solve(games, teams["team_id"], as_of, prior)
     rows, summ, hist = netplus.build(games, teams, prior, current)
-    export(Path(args.out), args.season, as_of, games, upcoming, teams, current, rows, summ, hist)
+    export(Path(args.out), args.season, as_of, games, upcoming, teams, current, rows, summ, hist, prior)
 
     top = current.table.sort_values("rank").head(5).join(teams.set_index("team_id")["short"])
     print(f"season {args.season} as of {as_of}: {int(games['d1'].sum())} D-I games, "
