@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NET+ · CBB Ratings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="wrap">
+<h1>NET+</h1>
+<p class="sub">A NET-style resume where every game is graded once, using where the opponent stood on the day it was played. A win over a top-30 team stays a Q1 win even if that team fades. <a href="about.html#netplus">How it works</a></p>
+<div class="controls" id="controls"><div id="view"></div></div>
+<div class="table-wrap" id="table"><p class="loading">Loading NET+…</p></div>
+<p class="note">Live rank grades every game with today&#39;s rankings, the way the NCAA NET does. Freeze effect is how many spots a team gains (+) or loses from freezing.</p>
+</main>
+<script src="assets/app.js"></script>
+<script>CBB.start("netplus");</script>
+</body>
+</html>

@@ -14,7 +14,7 @@ RECENCY_FLOOR = 0.60
 
 # Blowout damping: game efficiency margins (per 100 possessions) beyond
 # MARGIN_CAP count at MARGIN_SLOPE of their size. (tuned)
-MARGIN_CAP = 25.0
+MARGIN_CAP = 40.0
 MARGIN_SLOPE = 0.5
 
 # Preseason prior: last season's final ratings, regressed toward average,
@@ -22,13 +22,13 @@ MARGIN_SLOPE = 0.5
 # games played (Torvik phases his prior out after about 13). (tuned)
 PRIOR_GAMES = 6.0
 PRIOR_FADE_GAMES = 13
-PRIOR_REGRESS = 0.35  # share of the way back to average
+PRIOR_REGRESS = 0.20  # share of the way back to average
 
 # Small ridge penalty so the system stays solvable early in the season.
 RIDGE = 0.5
 
 # Win probability = Phi(predicted margin / MARGIN_SD). (tuned)
-MARGIN_SD = 11.0
+MARGIN_SD = 11.9
 
 # NET quadrant cutoffs by location: upper rank bound for Q1, Q2, Q3.
 QUADRANTS = {
