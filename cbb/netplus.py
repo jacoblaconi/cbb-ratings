@@ -72,8 +72,12 @@ def _team_rows(g: pd.DataFrame) -> pd.DataFrame:
     return rows.sort_values(["game_date", "game_id"]).reset_index(drop=True)
 
 
-def build(games: pd.DataFrame, teams: pd.DataFrame, prior: pd.DataFrame | None, current: Ratings):
-    """Return (game_rows, team_summary, rank_history)."""
+def build(games: pd.DataFrame, teams: pd.DataFrame, prior: pd.DataFrame | None, current: Ratings,
+          snapshots: dict | None = None):
+    """Return (game_rows, team_summary, rank_history).
+
+    If `snapshots` is a dict, each morning's Ratings are stored in it by date
+    (the prediction tracker reuses them)."""
     ids = teams["team_id"]
     official = _official_ranks()
     official_dates = sorted(official)
@@ -88,6 +92,8 @@ def build(games: pd.DataFrame, teams: pd.DataFrame, prior: pd.DataFrame | None, 
     history = {}
     for day, idx in d1.groupby("game_date").indices.items():
         snap = solve(games, ids, day, prior)
+        if snapshots is not None:
+            snapshots[day] = snap
         history[day] = snap.table["rank"]
         ranks = snap.table["rank"]
         src = "model"

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bracketology · CBB Ratings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="wrap">
+<h1>Bracketology</h1>
+<p class="sub">The projected NCAA field if the season played out as the model expects, plus each team&#39;s odds from <span data-sims>2,000</span> simulated seasons. <a href="about.html#bracket">How it works</a></p>
+<div id="proj"><p class="loading">Loading bracket…</p></div>
+<h2>Season odds</h2>
+<div class="controls" id="controls"><div id="view"></div></div>
+<div class="table-wrap" id="table"></div>
+</main>
+<script src="assets/app.js"></script>
+<script>CBB.start("bracket");</script>
+</body>
+</html>
