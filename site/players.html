@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Players · CBB Ratings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="wrap">
+<h1>Player ratings</h1>
+<p class="sub">Individual offensive rating, usage and minutes from box scores, through games before <span data-asof></span>. <a href="about.html#players">How it works</a></p>
+<div class="controls" id="controls"><div id="view"></div></div>
+<div class="table-wrap" id="table"><p class="loading">Loading players…</p></div>
+</main>
+<script src="assets/app.js"></script>
+<script>CBB.start("players");</script>
+</body>
+</html>
