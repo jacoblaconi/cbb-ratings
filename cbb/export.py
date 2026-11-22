@@ -32,14 +32,12 @@ def _sides(g: pd.DataFrame) -> pd.DataFrame:
 
 def team_stats(games: pd.DataFrame, teams: pd.DataFrame, current: Ratings) -> pd.DataFrame:
     s = _sides(games)
-    all_g = s.groupby("team_id")
-    rec = pd.DataFrame({
-        "wins": all_g.apply(lambda x: int((x["o_team_score"] > x["d_team_score"]).sum()), include_groups=False),
-        "losses": all_g.apply(lambda x: int((x["o_team_score"] < x["d_team_score"]).sum()), include_groups=False),
-    })
-    conf = s[s["conf_game"]].groupby("team_id")
-    rec["conf_wins"] = conf.apply(lambda x: int((x["o_team_score"] > x["d_team_score"]).sum()), include_groups=False)
-    rec["conf_losses"] = conf.apply(lambda x: int((x["o_team_score"] < x["d_team_score"]).sum()), include_groups=False)
+    s["w_"] = (s["o_team_score"] > s["d_team_score"]).astype(int)
+    s["l_"] = (s["o_team_score"] < s["d_team_score"]).astype(int)
+    rec = s.groupby("team_id")[["w_", "l_"]].sum().rename(columns={"w_": "wins", "l_": "losses"})
+    conf = s[s["conf_game"]].groupby("team_id")[["w_", "l_"]].sum()
+    rec["conf_wins"] = conf["w_"].reindex(rec.index)
+    rec["conf_losses"] = conf["l_"].reindex(rec.index)
 
     d = s[s["d1"]].copy()
     t = d.groupby("team_id").sum(numeric_only=True)
@@ -99,9 +97,22 @@ def _write(path: Path, obj) -> None:
     path.write_text(json.dumps(obj, separators=(",", ":")))
 
 
+def watch_score(em_h, em_a, p_home):
+    """0-100 "worth watching" score: both teams good, and the game close.
+
+    Quality is the pair's average AdjEM on a scale where -15 is 0 and +30 is 1;
+    closeness is 1 at a coin flip and 0 at a lock.
+    """
+    q = np.clip(((np.asarray(em_h) + np.asarray(em_a)) / 2 + 15) / 45, 0, 1)
+    close = 1 - np.abs(2 * np.asarray(p_home) - 1)
+    return 100 * q**1.2 * (0.25 + 0.75 * close)
+
+
 def export(out_dir: Path, season: int, as_of: str, games, upcoming, teams, current: Ratings,
-           game_rows, netplus, history, prior: pd.DataFrame | None = None) -> None:
-    stats = team_stats(games, teams, current)
+           game_rows, netplus, history, prior: pd.DataFrame | None = None, stats: pd.DataFrame | None = None,
+           players: pd.DataFrame | None = None, tracker: dict | None = None, odds: pd.DataFrame | None = None,
+           bracket: dict | None = None) -> None:
+    stats = team_stats(games, teams, current) if stats is None else stats
     info = teams.set_index("team_id")
     r = current.table
 
@@ -160,6 +171,10 @@ def export(out_dir: Path, season: int, as_of: str, games, upcoming, teams, curre
             "upcoming": nxt,
             "rank_history": {"dates": hist_dates, "ranks": [int(x) for x in history[tid].tolist()]}
             if tid in history.columns else None,
+            "players": _records(players[players["team_id"] == tid].drop(columns="team_id"))
+            if players is not None and len(players) else [],
+            "outlook": _records(odds.loc[[tid]].drop(columns="conf").reset_index())[0]
+            if odds is not None and tid in odds.index else None,
         })
 
     # Upcoming games, next 7 days.
@@ -171,11 +186,47 @@ def export(out_dir: Path, season: int, as_of: str, games, upcoming, teams, curre
         week["h_rank"] = r["rank"].reindex(week["h_team_id"]).to_numpy()
         week["a_rank"] = r["rank"].reindex(week["a_team_id"]).to_numpy()
         week["tip"] = week["tip_utc"].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        week["watch"] = watch_score(r["adj_em"].reindex(week["h_team_id"]).to_numpy(),
+                                    r["adj_em"].reindex(week["a_team_id"]).to_numpy(), week["p_home"])
         cols = ["game_id", "game_date", "tip", "neutral_site", "h_team_id", "a_team_id", "home", "away",
-                "h_rank", "a_rank", "pts_h", "pts_a", "margin", "p_home", "tempo"]
+                "h_rank", "a_rank", "pts_h", "pts_a", "margin", "p_home", "tempo", "watch"]
         _write(out_dir / "games.json", _records(week[cols]))
     else:
         _write(out_dir / "games.json", [])
+
+    logos = info["logo"].to_dict()
+    confs = info["conf"].to_dict()
+
+    # Players: national table (regulars only, to keep the file small).
+    if players is not None and len(players):
+        pl = players[players["min_pct"] >= 25].copy()
+        pl["team"] = pl["team_id"].map(names)
+        pl["conf"] = pl["team_id"].map(confs)
+        num = pl.select_dtypes("number").columns.drop(["athlete_id", "team_id", "g"])
+        pl[num] = pl[num].round(1)
+        _write(out_dir / "players.json", _records(pl.drop(columns=["jersey"])))
+
+    # Prediction tracker.
+    if tracker is not None:
+        g = tracker["games"]
+        if isinstance(g, pd.DataFrame) and len(g):
+            g = g.assign(home=g["h_team_id"].map(names), away=g["a_team_id"].map(names))
+            g = _records(g[["game_id", "game_date", "home", "away", "h_team_id", "a_team_id", "neutral_site",
+                            "h_score", "a_score", "pts_h", "pts_a", "margin", "p_home", "correct",
+                            "home_spread", "line_total", "ats_edge", "ats", "ou"]])
+        else:
+            g = []
+        _write(out_dir / "tracker.json", {**{k: v for k, v in tracker.items() if k != "games"}, "games": g})
+
+    # Bracketology and season odds.
+    if odds is not None:
+        o = info[["short", "conf", "logo"]].join(odds.drop(columns="conf")).join(r[["rank", "adj_em"]]).join(
+            stats[["wins", "losses", "conf_wins", "conf_losses"]]).join(netplus[["netplus_rank"]])
+        _write(out_dir / "bracket.json", {
+            "teams": _records(o.sort_values("sel_score", ascending=False).reset_index()),
+            "projection": bracket,
+            "sims": config.SIM_COUNT,
+        })
 
     _write(out_dir / "meta.json", {
         "season": season,
@@ -187,6 +238,6 @@ def export(out_dir: Path, season: int, as_of: str, games, upcoming, teams, curre
         "national_avg_tempo": round(current.mu_t, 2),
         "constants": {k: getattr(config, k) for k in (
             "HCA_POINTS", "FT_FACTOR", "MARGIN_SD", "PRIOR_GAMES", "PRIOR_FADE_GAMES",
-            "PRIOR_REGRESS", "MARGIN_CAP", "BUBBLE_RANK", "NETPLUS_RESULTS_WEIGHT")},
+            "PRIOR_REGRESS", "MARGIN_CAP", "BUBBLE_RANK", "NETPLUS_RESULTS_WEIGHT", "SIM_COUNT", "SIM_RATING_SD")},
         "rank_sources": sorted(set(game_rows["rank_source"].dropna())),
     })

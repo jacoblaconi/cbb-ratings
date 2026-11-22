@@ -47,6 +47,33 @@
 </ul>
 <p>Snapshots use our AdjEM rank. When official NCAA NET rankings for a date are added to the data, NET+ freezes those instead from that date on.</p>
 
+<h2 id="games">Win chances and the watch score</h2>
+<p>Every upcoming game gets a projected score and a win chance from the ratings. The <b>watch score</b> (0-100) ranks games worth tuning in for: the two teams' average AdjEM sets the quality (−15 is 0, +30 is full marks), and that is scaled by how close the game should be, from 1 at a coin flip down to a quarter for a sure thing. The games page leads with the best six of the next game day.</p>
+
+<h2 id="bracket">Bracketology</h2>
+<p>The rest of the season is simulated 2,000 times each night.</p>
+<ol>
+  <li>Each simulated season draws every team's true strength around its current AdjEM (standard deviation 3 points per 100 possessions), so a team can run hot or cold for a whole season. Game-to-game noise is reduced to match, so single-game predictions stay as accurate as on the games page.</li>
+  <li>Every remaining scheduled game is played out. Wins above bubble for those games use today's bubble odds, the way NET+ would grade them on game day.</li>
+  <li>Each conference tournament is played as single elimination, seeded by simulated conference record. Once tournaments start, teams that lost are out and a finished final locks in the auto bid.</li>
+  <li>The field takes one automatic bid per conference, then the best at-large teams by a NET+-style selection score (half frozen wins above bubble, half AdjEM). The 68 are seeded on an S-curve; the last four at-large teams and the four lowest auto bids play in the First Four.</li>
+  <li>The NCAA tournament is played on neutral courts, and the round-by-round odds are the share of simulations a team reached each round.</li>
+</ol>
+<p>The projected bracket uses each league's likeliest tournament champion and the at-large teams with the best average selection score. It doesn't apply the committee's conference separation rules, and every league team is assumed to make its conference tournament. Early in the season it mostly reflects the ratings.</p>
+
+<h2 id="players">Player ratings</h2>
+<ul>
+  <li><b>ORtg</b>: Dean Oliver's individual offensive rating, points produced per 100 possessions used, from season totals (Basketball-Reference's formulas). It is left blank under 40 possessions used.</li>
+  <li><b>Usg%</b>: share of team possessions a player uses (shots, free throws, turnovers) while on the floor. <b>Min%</b>: share of team minutes.</li>
+  <li><b>Off. value</b>: (ORtg − national average efficiency) × Usg% × Min%, roughly the points per 100 team possessions a player adds over an average D-I offense using the same possessions. It rewards efficient, high-usage, heavy-minute players.</li>
+  <li><b>ARate</b>: assists per teammate field goal while on the floor. <b>TORate</b>: turnovers per 100 possessions used. <b>OR%/DR%</b>: share of available rebounds grabbed while on the floor.</li>
+</ul>
+<p>Team totals come from the same player box scores, and rates are blank under 10% of minutes.</p>
+
+<h2 id="tracker">Prediction tracker</h2>
+<p>Every D-I game is predicted with the ratings snapshot from the morning it was played, using only earlier games. These picks are rebuilt each night with the current code rather than logged, so they show what today's model would have said before tip-off, not a record of picks made earlier in the season with older settings.</p>
+<p>Betting lines are the DraftKings spread and total shown in ESPN's game summary, as mirrored by sportsdataverse, at or near the closing line. A pick against the spread takes whichever side the model likes relative to the line; 52.4% is break-even at −110. The tracker also compares the model's average error with the line's on the same games.</p>
+
 <h2>Data</h2>
 <p>Box scores and schedules come from ESPN, through the free <a href="https://github.com/sportsdataverse/hoopR-mbb-data">sportsdataverse/hoopR</a> datasets. The site rebuilds every morning.</p>
 </main>

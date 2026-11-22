@@ -55,3 +55,9 @@ BUBBLE_RANK = 45
 # NET+ blend: results part (frozen WAB) and efficiency part (AdjEM),
 # mirroring NET's results + efficiency structure.
 NETPLUS_RESULTS_WEIGHT = 0.5
+
+# Season simulation (bracketology, conference odds).
+SIM_COUNT = 2000
+# Spread of each team's "true" AdjEM around its current rating in a simulated
+# season. Game noise is reduced so total error still matches MARGIN_SD.
+SIM_RATING_SD = 3.0
