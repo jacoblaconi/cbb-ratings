@@ -86,6 +86,14 @@ h2 { font-size: 17px; margin: 28px 0 10px; }
 .note { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
 
 .day { margin: 22px 0 8px; font-weight: 600; }
+.daynav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; position: sticky; top: 56px; z-index: 5; }
+.daynav .daylabel { flex: 1 1 200px; text-align: center; font-size: 15px; }
+.daynav input[type=date] { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; min-height: 34px; color-scheme: light dark; }
+.btn { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; min-height: 34px; cursor: pointer; }
+.btn:hover:not(:disabled) { background: var(--head); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.btn[hidden], .seg[hidden] { display: none; }
+@media (max-width: 560px) { .daynav .daylabel { order: -1; flex-basis: 100%; } .daynav input[type=date] { flex: 1; } }
 .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
 .game { padding: 12px 14px; }
 .game .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
