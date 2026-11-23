@@ -11,10 +11,11 @@
 <body>
 <main class="wrap">
 <h1>Game predictions</h1>
-<p class="sub">Projected scores and win chances for the next seven days, from current AdjO, AdjD, AdjT and a 3.75-point home court. The watch score (0-100) is high when both teams are good and the game is close. <a href="tracker.html">How the picks have done</a></p>
+<p class="sub">Projected scores and win chances one day at a time, from current AdjO, AdjD, AdjT and a 3.75-point home court. Flip ahead up to a week, or back two weeks to see how the picks did. The watch score (0-100) is high when both teams are good and the game is close. <a href="tracker.html">How the picks have done</a></p>
+<div class="daynav card" id="daynav"></div>
+<p class="note" id="daymiss" aria-live="polite"></p>
 <div id="best"></div>
-<h2>All games</h2>
-<div class="controls"><div id="view"></div></div>
+<div class="controls" style="margin-top:14px"><div id="view"></div></div>
 <div id="games"><p class="loading">Loading games…</p></div>
 </main>
 <script src="assets/app.js"></script>

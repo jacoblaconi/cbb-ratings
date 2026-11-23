@@ -326,29 +326,123 @@
     </div>`;
   }
 
+  // Final score card for a finished game, with the pregame pick.
+  function resultCard(g, rank) {
+    const won = g.h_score > g.a_score;
+    const pct = (x) => Math.min(99, Math.max(1, Math.round(x * 100))) + "%";
+    const fav = g.margin >= 0 ? g.home : g.away;
+    const favP = g.margin >= 0 ? g.p_home : 1 - g.p_home;
+    const r = (id) => (rank[id] != null ? rank[id] : "");
+    const side = (id, name, score, win, at) =>
+      `<div class="row"><span class="nm"><span class="rk">${r(id)}</span> ${at}<a href="team.html?id=${id}">${esc(name)}</a></span><span class="pts ${win ? "" : "muted"}">${score}</span></div>`;
+    return `<div class="card game">
+      ${side(g.a_team_id, g.away, g.a_score, !won, "")}
+      ${side(g.h_team_id, g.home, g.h_score, won, g.neutral_site ? "<span class=muted>vs</span> " : "<span class=muted>at</span> ")}
+      <div class="meta" style="margin-top:10px"><span>Final${g.neutral_site ? " · neutral" : ""}</span><span>Predicted ${Math.round(g.pts_a)}-${Math.round(g.pts_h)}</span></div>
+      <div class="meta"><span>Pick: ${esc(fav)} ${pct(favP)}</span><span class="${g.correct ? "pos" : "neg"}">${g.correct ? "Hit" : "Miss"}</span></div>
+    </div>`;
+  }
+
+  // Today's date (YYYY-MM-DD) in US Eastern time, where the schedule lives.
+  const etToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
   async function games() {
-    const rows = await get("games.json");
+    const [rows, trk, rat] = await Promise.all([
+      get("games.json"),
+      get("tracker.json").catch(() => null),
+      get("ratings.json").catch(() => []),
+    ]);
     const el = document.getElementById("games");
     const best = document.getElementById("best");
-    if (!rows.length) { el.innerHTML = `<p class="loading">No D-I games scheduled in the next week.</p>`; return; }
-    // Best games of the next day with games on the schedule.
-    const first = rows.map((g) => g.game_date).sort()[0];
-    const top = rows.filter((g) => g.game_date === first).sort((a, b) => b.watch - a.watch).slice(0, 6);
-    best.innerHTML = `<h2>Best games ${esc(fmtDate(first, { weekday: "long", month: "long", day: "numeric" }))}</h2><div class="games">${top.map(gameCard).join("")}</div>`;
-    let mode = store.get("games:mode") || "time";
-    const draw = () => {
-      let list = mode === "top" ? rows.filter((g) => Math.min(g.h_rank, g.a_rank) <= 50) : rows.slice();
-      const byDay = {};
-      list.forEach((g) => (byDay[g.game_date] = byDay[g.game_date] || []).push(g));
-      el.innerHTML = Object.keys(byDay).sort().map((day) => {
-        const gs = byDay[day];
-        if (mode === "watch") gs.sort((a, b) => b.watch - a.watch);
-        return `<div class="day">${esc(fmtDate(day, { weekday: "long", month: "long", day: "numeric" }))} · ${gs.length} games</div>
-        <div class="games">${gs.map(gameCard).join("")}</div>`;
-      }).join("");
+    const nav = document.getElementById("daynav");
+    const rank = {};
+    rat.forEach((t) => (rank[t.team_id] = t.rank));
+    // Upcoming games (predictions) win over finished ones (results) on the same date.
+    const upcoming = {}, finals = {};
+    rows.forEach((g) => (upcoming[g.game_date] = upcoming[g.game_date] || []).push(g));
+    ((trk && trk.games) || []).forEach((g) => { if (!upcoming[g.game_date]) (finals[g.game_date] = finals[g.game_date] || []).push(g); });
+    const days = [...new Set([...Object.keys(upcoming), ...Object.keys(finals)])].sort();
+    if (!days.length) { nav.innerHTML = ""; el.innerHTML = `<p class="loading">No D-I games on the schedule right now.</p>`; return; }
+
+    // Nearest day with games; ties go to the later day.
+    const nearest = (d) => days.reduce((b, x) => {
+      const dx = Math.abs(Date.parse(x) - Date.parse(d)), db = Math.abs(Date.parse(b) - Date.parse(d));
+      return dx < db || (dx === db && x > b) ? x : b;
+    }, days[0]);
+    const fromUrl = () => {
+      const q = new URLSearchParams(location.search).get("date");
+      return q && ISO.test(q) ? q : etToday();
     };
+
+    let mode = store.get("games:mode") || "time";
+    let day;
+    const long = (d) => fmtDate(d, { weekday: "long", month: "long", day: "numeric" });
+
+    nav.innerHTML = `<button class="btn" id="prev" aria-label="Previous day with games">&larr;</button>
+      <div class="daylabel"><b id="dayname"></b><span id="daysub" class="muted"></span></div>
+      <button class="btn" id="next" aria-label="Next day with games">&rarr;</button>
+      <input type="date" id="pick" min="${days[0]}" max="${days[days.length - 1]}" aria-label="Pick a date">
+      <button class="btn" id="today">Today</button>`;
+    const $ = (id) => document.getElementById(id);
+
+    function draw() {
+      const i = days.indexOf(day);
+      $("prev").disabled = i <= 0;
+      $("next").disabled = i >= days.length - 1;
+      $("pick").value = day;
+      $("dayname").textContent = long(day);
+      const today = etToday();
+      $("today").hidden = day === nearest(today);
+      const up = upcoming[day];
+      const n = (up || finals[day]).length;
+      $("daysub").textContent = ` · ${n} game${n === 1 ? "" : "s"}${day === today ? " · today" : ""}${up ? "" : " · finals"}`;
+      document.title = `Games ${fmtDate(day)} · CBB Ratings`;
+
+      if (up) {
+        const top = up.slice().sort((a, b) => b.watch - a.watch).slice(0, 6);
+        best.innerHTML = up.length > 6 ? `<h2>Best games</h2><div class="games">${top.map(gameCard).join("")}</div><h2>All games</h2>` : "";
+        $("view").hidden = false;
+        let list = mode === "top" ? up.filter((g) => Math.min(g.h_rank, g.a_rank) <= 50) : up.slice();
+        list.sort(mode === "watch" ? (a, b) => b.watch - a.watch : (a, b) => (a.tip < b.tip ? -1 : a.tip > b.tip ? 1 : 0));
+        el.innerHTML = list.length ? `<div class="games">${list.map(gameCard).join("")}</div>` : `<p class="loading">No games with a top-50 team on this day.</p>`;
+      } else {
+        best.innerHTML = "";
+        $("view").hidden = true;
+        const fin = finals[day];
+        const hits = fin.filter((g) => g.correct).length;
+        el.innerHTML = `<p class="note" style="margin:0 0 10px">Picks went ${hits}-${fin.length - hits} on this day. <a href="tracker.html">Full tracker</a></p>
+          <div class="games">${fin.map((g) => resultCard(g, rank)).join("")}</div>`;
+      }
+    }
+
+    // Show a date. push=true adds a history entry so the URL can be shared and Back works.
+    function go(d, push) {
+      const want = d;
+      day = days.includes(d) ? d : nearest(d);
+      draw();
+      const note = $("daymiss");
+      if (want !== day && note) note.textContent = `No games on ${long(want)}. Showing the nearest day with games.`;
+      else if (note) note.textContent = "";
+      if (push) {
+        const u = new URL(location.href);
+        u.searchParams.set("date", day);
+        history.pushState({ date: day }, "", u);
+      }
+    }
+    const step = (k) => { const i = days.indexOf(day) + k; if (i >= 0 && i < days.length) go(days[i], true); };
+    $("prev").addEventListener("click", () => step(-1));
+    $("next").addEventListener("click", () => step(1));
+    $("today").addEventListener("click", () => go(etToday(), true));
+    $("pick").addEventListener("change", (e) => { if (ISO.test(e.target.value)) go(e.target.value, true); });
+    document.addEventListener("keydown", (e) => {
+      if (e.target.closest("input, select, textarea") || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.key === "ArrowLeft") step(-1);
+      if (e.key === "ArrowRight") step(1);
+    });
+    window.addEventListener("popstate", () => go(fromUrl(), false));
     seg("view", [["time", "By tip time"], ["watch", "Best first"], ["top", "Top-50 teams"]], mode, (v) => { mode = v; store.set("games:mode", v); draw(); });
-    draw();
+    go(fromUrl(), false);
   }
 
   const pctf = (x, d = 0) => (x == null ? "" : (x * 100).toFixed(d) + "%");
