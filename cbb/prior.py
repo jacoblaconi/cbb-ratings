@@ -113,8 +113,8 @@ def recruiting_bump(season: int, team_ids) -> pd.Series:
 
 def projected_em(feat: pd.DataFrame, coef: dict) -> pd.Series:
     x = sum(coef[k] * feat[k] for k in FEATURES) + coef["intercept"]
-    # Teams with no D-I history: average newcomer level.
-    return x.where(feat["has_prev"], coef["intercept"] + coef["xfer_em"] * feat["xfer_em"])
+    # Teams with no D-I history: a little below average, plus credit for D-I transfers.
+    return x.where(feat["has_prev"], config.NEWCOMER_EM + coef["xfer_em"] * feat["xfer_em"])
 
 
 def build_prior(season: int, refresh: bool = False, coef: dict | None = None) -> pd.DataFrame:

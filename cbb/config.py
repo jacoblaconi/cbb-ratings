@@ -33,6 +33,10 @@ PRIOR_REGRESS = 0.20  # share of the way back to average
 PRIOR_COEF = {"em_ret": 0.433, "em_prev": 0.581, "ret": 8.174, "xfer_em": 0.648,
               "xfer_share": 11.233, "intercept": -4.213}
 
+# Teams with no D-I history (new to Division I): projected AdjEM vs average
+# before transfer credit. "A little below average."
+NEWCOMER_EM = -6.0
+
 # Optional recruiting input (data/recruiting/{season}.csv): AdjEM per standard
 # deviation of class score. Kept light on purpose.
 RECRUIT_WEIGHT = 1.0
