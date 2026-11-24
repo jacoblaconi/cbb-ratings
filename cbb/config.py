@@ -28,9 +28,10 @@ PRIOR_REGRESS = 0.20  # share of the way back to average
 # Projected AdjEM (vs average) = sum(coef * feature) + intercept, where
 #   em_prev: last season's AdjEM, ret: share of last season's production returning,
 #   em_ret: em_prev * ret, xfer_em: transfers' production share x old team's AdjEM,
-#   xfer_share: transfers' total production share at their old teams.
-PRIOR_COEF = {"em_ret": 0.416, "em_prev": 0.589, "ret": 7.747, "xfer_em": 0.62,
-              "xfer_share": 10.294, "intercept": -3.925}
+#   xfer_share: transfers' total production share at their old teams, capped so
+#   ret + xfer_share is at most one roster.
+PRIOR_COEF = {"em_ret": 0.433, "em_prev": 0.581, "ret": 8.174, "xfer_em": 0.648,
+              "xfer_share": 11.233, "intercept": -4.213}
 
 # Optional recruiting input (data/recruiting/{season}.csv): AdjEM per standard
 # deviation of class score. Kept light on purpose.
