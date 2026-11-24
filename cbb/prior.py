@@ -83,6 +83,13 @@ def features(season: int, prev: Ratings, refresh: bool = False) -> pd.DataFrame:
     out["em_ret"] = out["em_prev"] * out["ret"]
     out["xfer_em"] = xg["w_em"].sum().reindex(out.index).fillna(0)
     out["xfer_share"] = xg["share"].sum().reindex(out.index).fillna(0)
+    # A roster can only use one team's worth of production. When returning
+    # players plus transfers add up to more than that, scale the transfer
+    # credit down to fill only the room that's left.
+    room = (1.0 - out["ret"]).clip(lower=0)
+    scale = (room / out["xfer_share"].where(out["xfer_share"] > 0)).clip(upper=1.0).fillna(1.0)
+    out["xfer_em"] *= scale
+    out["xfer_share"] *= scale
     out["has_prev"] = out["em_prev"].notna()
     out["em_prev"] = out["em_prev"].fillna(0)
     out["em_ret"] = out["em_ret"].fillna(0)
