@@ -462,13 +462,13 @@
     const regions = [0, 1, 2, 3].map((r) => p.seeds.filter((s) => s.region === r));
     const tl = (s) => {
       const t = byId[s.team_id];
-      return `<li><span class="sd">${s.seed}</span><span class="team">${teamLink(s.team_id, t.short, t.logo)}</span>${s.auto ? `<span class="tag" title="Projected automatic bid">${esc(t.conf)}</span>` : ""}${s.first_four ? `<span class="tag ff" title="First Four">FF</span>` : ""}</li>`;
+      return `<li><span class="sd">${s.seed}</span><span class="team">${teamLink(s.team_id, t.short, t.logo)}</span>${s.auto ? `<span class="tag" title="Projected automatic bid">${esc(t.conf)}</span>` : ""}${s.opening_round ? `<span class="tag ff" title="Opening round">OR</span>` : ""}</li>`;
     };
     const lst = (title, ids) => `<div><div class="k">${title}</div><div>${ids.map((id) => `<a href="team.html?id=${id}">${esc(nm(id))}</a>`).join(", ") || "-"}</div></div>`;
     document.getElementById("proj").innerHTML = `
       <div class="regions">${regions.map((reg, i) => `<div class="card region"><div class="rh">Region ${i + 1}${i === 0 ? ` <span class="muted">· top overall seed</span>` : ""}</div><ol>${reg.map(tl).join("")}</ol></div>`).join("")}</div>
-      <div class="card bubble">${lst("Last four byes", p.last_four_byes)}${lst("Last four in", p.last_four_in)}${lst("First four out", p.first_four_out)}${lst("Next four out", p.next_four_out)}</div>
-      <p class="note">Region 1 meets Region 4 and Region 2 meets Region 3 in the national semifinals. The bracket follows the S-curve and does not apply the committee's rules for keeping conference teams apart. Auto bids go to each league's likeliest conference tournament champion.</p>`;
+      <div class="card bubble">${lst("Last four byes", p.last_four_byes)}${lst("Opening round at-large", p.opening_round_at_large || [])}${lst("Last four in", p.last_four_in)}${lst("First four out", p.first_four_out)}${lst("Next four out", p.next_four_out)}</div>
+      <p class="note">The field is 76 teams: OR marks the 24 teams in the opening round, where the 12 lowest-seeded auto bids and 12 lowest-seeded at-large teams play for 12 spots in the round of 64. Region 1 meets Region 4 and Region 2 meets Region 3 in the national semifinals. The bracket follows the S-curve and does not apply the committee's rules for keeping conference teams apart. Auto bids go to each league's likeliest conference tournament champion.</p>`;
 
     const cols = [
       { key: "sel_score", label: "#", asc: false, html: (r) => r.sel_rank, title: "Order by average selection score across simulations" },

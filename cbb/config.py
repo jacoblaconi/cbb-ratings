@@ -58,6 +58,12 @@ NETPLUS_RESULTS_WEIGHT = 0.5
 
 # Season simulation (bracketology, conference odds).
 SIM_COUNT = 2000
+# NCAA tournament field: 76 teams. The 12 lowest-seeded auto bids and the 12
+# lowest-seeded at-large teams play a 12-game opening round; six of each reach
+# the round of 64.
+FIELD_SIZE = 76
+OPENING_ROUND_AUTO = 12
+OPENING_ROUND_AT_LARGE = 12
 # Spread of each team's "true" AdjEM around its current rating in a simulated
 # season. Game noise is reduced so total error still matches MARGIN_SD.
 SIM_RATING_SD = 3.0

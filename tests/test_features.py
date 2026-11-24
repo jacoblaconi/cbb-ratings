@@ -36,7 +36,7 @@ def test_bracket_order_pairs_top_seed_with_lowest():
     assert all(a + b == 15 for a, b in pairs)
 
 
-def test_simulation_fills_a_68_team_field():
+def test_simulation_fills_a_76_team_field():
     g, teams = _league()
     r = solve(g, teams["team_id"], "2027-01-01")
     _, summ, _ = netplus.build(g, teams, None, r)
@@ -46,15 +46,34 @@ def test_simulation_fills_a_68_team_field():
     schedule = pd.DataFrame({"game_id": [10_000], "notes_headline": [""], "conference_competition": [True],
                              "season_type": [2], "game_date": ["2027-01-02"]})
     odds, br = sim.simulate(r, teams, stats, summ, up, schedule, g, n=200, seed=1)
-    assert abs(odds["p_field"].sum() - 68) < 1e-6
+    assert abs(odds["p_field"].sum() - 76) < 1e-6
     assert abs(odds["p_auto"].sum() - 8) < 1e-6
     assert abs(odds["p_champ"].sum() - 1) < 1e-6
     assert abs(odds["p_r64"].sum() - 64) < 1e-6
     assert (odds["p_s16"] <= odds["p_r32"] + 1e-9).all()
-    assert len(br["seeds"]) == 68
+    assert len(br["seeds"]) == 76
+    # 24 teams in the opening round; 12 games feed the round of 64.
+    assert abs(odds["p_opening_round"].sum() - 24) < 1e-6
+    assert sum(s["opening_round"] for s in br["seeds"]) == 24
+    assert len({(s["region"], s["seed"]) for s in br["seeds"]}) == 64
     # Better teams make the field more often.
     top = r.table["adj_em"].idxmax()
     assert odds.at[top, "p_field"] > 0.95
+
+
+def test_opening_round_pairs_six_auto_and_six_at_large_games():
+    order = list(range(76))          # best first
+    autos = set(range(45, 76))       # 31 auto bids, the weakest teams here
+    partner, slots = sim.opening_round(order, autos)
+    assert len(slots) == 64 and len(partner) == 12
+    auto_games = [(a, b) for a, b in partner.items() if a in autos]
+    assert len(auto_games) == 6 and all(b in autos for _, b in auto_games)
+    # The 12 lowest auto bids (64-75) play in: best vs worst.
+    assert sorted(t for g in auto_games for t in g) == list(range(64, 76))
+    assert partner[64] == 75
+    # The 12 lowest at-large teams (33-44) play in.
+    at_games = [(a, b) for a, b in partner.items() if a not in autos]
+    assert sorted(t for g in at_games for t in g) == list(range(33, 45))
 
 
 def test_conf_tourney_detection_ignores_early_events():
