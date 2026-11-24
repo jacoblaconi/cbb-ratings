@@ -9,8 +9,10 @@ Each simulation:
      a completed final locks the auto bid);
   4. picks the field: 31 automatic bids plus the best at-large teams by a
      NET+-style selection score (wins above bubble, frozen as graded on game
-     day, blended with AdjEM), seeds the 68 on an S-curve, and
-  5. plays the NCAA tournament (First Four included) on neutral courts.
+     day, blended with AdjEM), seeds the 76 on an S-curve, and
+  5. plays the NCAA tournament on neutral courts, starting with a 12-game
+     opening round: the 12 lowest-seeded auto bids and the 12 lowest-seeded
+     at-large teams play in, and six of each reach the round of 64.
 
 Simplifications: every conference team enters its tournament, conference
 tournaments are plain single elimination on neutral courts, and the bracket
@@ -42,6 +44,31 @@ def _bracket_order(p: int) -> list[int]:
         m = len(order) * 2
         order = [x for s in order for x in (s, m - 1 - s)]
     return order
+
+
+def opening_round(order: list, autos: set) -> tuple[dict, list]:
+    """Pair the opening round and lay out the 64 bracket slots.
+
+    order: the field, best selection score first. The lowest OPENING_ROUND_AUTO
+    auto bids and lowest OPENING_ROUND_AT_LARGE at-large teams play in, paired
+    best against worst within each group (with fewer auto bids than that, e.g.
+    in small test leagues, at-large teams fill the gap). Each game takes the
+    S-curve slot of its better team.
+
+    Returns (partner, slots): partner maps the better team of each game to its
+    opponent; slots is the 64 teams in S-curve order, each game listed by its
+    better team.
+    """
+    a_sorted = [t for t in order if t in autos]
+    t_sorted = [t for t in order if t not in autos]
+    n_auto = min(config.OPENING_ROUND_AUTO, len(a_sorted) // 4 * 2)
+    n_at = config.OPENING_ROUND_AUTO + config.OPENING_ROUND_AT_LARGE - n_auto
+    partner = {}
+    for grp in (t_sorted[len(t_sorted) - n_at:], a_sorted[len(a_sorted) - n_auto:]):
+        for i in range(len(grp) // 2):
+            partner[grp[i]] = grp[-1 - i]
+    drop = set(partner.values())
+    return partner, [t for t in order if t not in drop][:64]
 
 
 def conf_tourney_games(schedule: pd.DataFrame) -> pd.Series:
@@ -190,13 +217,13 @@ def simulate(r: Ratings, teams: pd.DataFrame, stats: pd.DataFrame, netplus: pd.D
     is_auto = np.zeros((n, k), bool)
     valid = auto >= 0
     is_auto[np.broadcast_to(rows, auto.shape)[valid], auto[valid]] = True
-    n_at = 68 - is_auto.sum(axis=1)
+    n_at = config.FIELD_SIZE - is_auto.sum(axis=1)
     at_score = np.where(is_auto, -np.inf, score)
     at_rank = np.argsort(np.argsort(-at_score, axis=1), axis=1)
     is_at = at_rank < n_at[:, None]
     in_field = is_auto | is_at
 
-    # S-curve with First Four: last four at-large and four lowest auto bids play in.
+    # S-curve with the opening round (see opening_round).
     seed_line = np.zeros((n, k), int)
     ff = np.zeros((n, k), bool)
     rd = {name: np.zeros(k) for name in ROUNDS}
@@ -204,15 +231,7 @@ def simulate(r: Ratings, teams: pd.DataFrame, stats: pd.DataFrame, netplus: pd.D
     for s in range(n):
         f = np.where(in_field[s])[0]
         f = f[np.argsort(-score[s, f])]
-        autos = [t for t in f if is_auto[s, t]]
-        ats = [t for t in f if not is_auto[s, t]]
-        ff_auto, ff_at = autos[-4:], ats[-4:]
-        partner = {}
-        for grp in (ff_at, ff_auto):
-            if len(grp) == 4:
-                partner[grp[0]], partner[grp[1]] = grp[3], grp[2]
-        drop = set(partner.values())
-        slots = [t for t in f if t not in drop][:64]
+        partner, slots = opening_round(list(f), {t for t in f if is_auto[s, t]})
         # bracket[region][seed] = team (or play-in pair)
         region_slots = [[None] * 17 for _ in range(4)]
         for i, t in enumerate(slots):
@@ -223,7 +242,7 @@ def simulate(r: Ratings, teams: pd.DataFrame, stats: pd.DataFrame, netplus: pd.D
             if t in partner:
                 seed_line[s, partner[t]] = line + 1
                 ff[s, t] = ff[s, partner[t]] = True
-        # First Four
+        # Opening round
         field = []
         for reg in (0, 3, 1, 2):  # overall 1 meets overall 4 in the national semis
             for sd in curve:
@@ -251,7 +270,7 @@ def simulate(r: Ratings, teams: pd.DataFrame, stats: pd.DataFrame, netplus: pd.D
     out["p_auto"] = is_auto.mean(axis=0)
     out["p_at_large"] = is_at.mean(axis=0)
     out["p_field"] = in_field.mean(axis=0)
-    out["p_first_four"] = ff.mean(axis=0)
+    out["p_opening_round"] = ff.mean(axis=0)
     with np.errstate(invalid="ignore"):
         out["avg_seed"] = np.where(in_field, seed_line, 0).sum(axis=0) / in_field.sum(axis=0)
     for name in ROUNDS:
@@ -275,30 +294,28 @@ def projected_bracket(odds: pd.DataFrame) -> dict:
     confs = [c for c in o["conf"].unique() if c]
     autos = [o[o["conf"] == c]["p_auto"].idxmax() for c in confs]
     pool = o.drop(index=autos).sort_values("sel_score", ascending=False)
-    n_at = 68 - len(autos)
+    n_at = config.FIELD_SIZE - len(autos)
     ats = list(pool.index[:n_at])
     field = o.loc[autos + ats].sort_values("sel_score", ascending=False)
-    a_sorted = [t for t in field.index if t in set(autos)]
     t_sorted = [t for t in field.index if t in set(ats)]
-    ff_at, ff_auto = t_sorted[-4:], a_sorted[-4:]
-    partner = {}
-    for grp in (ff_at, ff_auto):
-        if len(grp) == 4:
-            partner[grp[0]], partner[grp[1]] = grp[3], grp[2]
+    partner, slots = opening_round(list(field.index), set(autos))
     drop = set(partner.values())
-    slots = [t for t in field.index if t not in drop][:64]
+    in_or = set(partner) | drop
+    or_at = [t for t in t_sorted if t in in_or]
+    byes = [t for t in t_sorted if t not in in_or]
     seeds = []
     for i, t in enumerate(slots):
         line, p = divmod(i, 4)
         reg = p if line % 2 == 0 else 3 - p
         for tt in ([t, partner[t]] if t in partner else [t]):
             seeds.append({"team_id": int(tt), "seed": line + 1, "region": reg, "overall": i + 1,
-                          "auto": tt in set(autos), "first_four": tt in partner or tt in drop})
+                          "auto": tt in set(autos), "opening_round": tt in in_or})
     rest = pool.index[n_at:]
     return {
         "seeds": seeds,
-        "last_four_byes": [int(t) for t in t_sorted[-8:-4]],
-        "last_four_in": [int(t) for t in ff_at],
+        "last_four_byes": [int(t) for t in byes[-4:]],
+        "opening_round_at_large": [int(t) for t in or_at],
+        "last_four_in": [int(t) for t in t_sorted[-4:]],
         "first_four_out": [int(t) for t in rest[:4]],
         "next_four_out": [int(t) for t in rest[4:8]],
     }
