@@ -137,3 +137,16 @@ def test_player_usage_averages_to_100():
         assert abs((grp["usg"] * grp["min_pct"]).sum() / 100 - 100) < 1e-6
         assert abs(grp["min_pct"].sum() - 500) < 1e-6
     assert out["ortg"].between(40, 200).all()
+
+
+def test_newcomer_prior_is_a_little_below_average():
+    import pandas as pd
+    from cbb import config
+    from cbb.prior import FEATURES, projected_em
+
+    feat = pd.DataFrame({k: [0.0, 0.0] for k in FEATURES}, index=[1, 2])
+    feat["has_prev"] = [False, False]
+    feat.loc[2, "xfer_em"] = 2.0
+    em = projected_em(feat, config.PRIOR_COEF)
+    assert em[1] == config.NEWCOMER_EM
+    assert em[2] > em[1]  # D-I transfers still add credit

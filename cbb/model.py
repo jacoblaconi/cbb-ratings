@@ -80,8 +80,8 @@ def solve(
     if prior is not None:
         pr = prior.reindex(team_ids)
         # Teams without a prior (new to D-I) start a little below average.
-        p_o = pr["o_rel"].fillna(-3.0).to_numpy()
-        p_d = pr["d_rel"].fillna(3.0).to_numpy()
+        p_o = pr["o_rel"].fillna(config.NEWCOMER_EM / 2).to_numpy()
+        p_d = pr["d_rel"].fillna(-config.NEWCOMER_EM / 2).to_numpy()
         p_t = pr["t_rel"].fillna(0.0).to_numpy()
     else:
         p_o = p_d = p_t = np.zeros(n)
