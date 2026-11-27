@@ -3,6 +3,11 @@ name: Build and deploy site
 on:
   schedule:
     - cron: "0 11 * * *"   # 6 AM Eastern (standard time), after hoopR's 07:00 UTC data update
+    # Extra midday/afternoon builds: tournament matchups (semis, 3rd-place and
+    # title games) are only set once earlier results are in, and GitHub often
+    # starts scheduled runs hours late, so one morning build can miss them.
+    - cron: "0 15 * * *"
+    - cron: "0 19 * * *"
   push:
     branches: [main]
   workflow_dispatch:
